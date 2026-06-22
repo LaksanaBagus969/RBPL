@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dokumen — Navagreen Logistics</title>
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div id="sidebarContainer"></div>
+  <main class="app-main">
+    <div id="navbarContainer"></div>
+    <div class="page-content">
+      <div class="page-header animate-fade-up">
+        <div class="page-header-left">
+          <h2>Manajemen Dokumen</h2>
+          <p>Kelola resi pengiriman, pengambilan, dan surat jalan</p>
+        </div>
+        <div class="page-header-actions" id="pageActions"></div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid animate-fade-up delay-1" id="docStats">
+        <div class="stat-card">
+          <div class="stat-card-icon green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <div class="stat-card-label">Total Dokumen</div>
+          <div class="stat-card-value" data-count="8">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon blue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
+          <div class="stat-card-label">Resi Pengiriman</div>
+          <div class="stat-card-value" data-count="3">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon amber"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+          <div class="stat-card-label">Resi Pengambilan</div>
+          <div class="stat-card-value" data-count="3">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon red"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+          <div class="stat-card-label">Surat Jalan</div>
+          <div class="stat-card-value" data-count="2">0</div>
+        </div>
+      </div>
+
+      <!-- Table Toolbar -->
+      <div class="table-toolbar animate-fade-up delay-2">
+        <div class="table-toolbar-left">
+          <div class="search-bar">
+            <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+            <input type="text" class="form-input" placeholder="Cari dokumen..." id="searchInput" oninput="filterTable()">
+          </div>
+          <div class="table-filters hide-mobile">
+            <button class="filter-btn active" onclick="setFilter(this,'all')">Semua</button>
+            <button class="filter-btn" onclick="setFilter(this,'Resi Pengiriman')">Pengiriman</button>
+            <button class="filter-btn" onclick="setFilter(this,'Resi Pengambilan')">Pengambilan</button>
+            <button class="filter-btn" onclick="setFilter(this,'Surat Jalan')">Surat Jalan</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="table-container animate-fade-up delay-3">
+        <table class="data-table" id="dokumenTable">
+          <thead>
+            <tr>
+              <th>No. Resi</th>
+              <th>Jenis</th>
+              <th>Pengirim</th>
+              <th>Penerima</th>
+              <th class="hide-mobile">Kota</th>
+              <th class="hide-mobile">Berat</th>
+              <th>Status</th>
+              <th class="hide-mobile">Tanggal</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="dokumenBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination">
+        <div class="pagination-info">Menampilkan <strong>1-8</strong> dari <strong>8</strong> dokumen</div>
+        <div class="pagination-buttons">
+          <button class="pagination-btn">←</button>
+          <button class="pagination-btn active">1</button>
+          <button class="pagination-btn">→</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Tambah Dokumen</h3>
+      <button class="modal-close" onclick="Modal.close('createModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Jenis Dokumen</label>
+        <select class="form-input" id="formJenis">
+          <option value="Resi Pengiriman">Resi Pengiriman</option>
+          <option value="Resi Pengambilan">Resi Pengambilan</option>
+          <option value="Surat Jalan">Surat Jalan</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pengirim</label>
+        <input type="text" class="form-input" id="formPengirim" placeholder="Nama pengirim">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Penerima</label>
+        <input type="text" class="form-input" id="formPenerima" placeholder="Nama penerima">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-group">
+          <label class="form-label">Kota Tujuan</label>
+          <input type="text" class="form-input" id="formKota" placeholder="Kota">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Berat (kg)</label>
+          <input type="text" class="form-input" id="formBerat" placeholder="0.0 kg">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="Modal.close('createModal')">Batal</button>
+      <button class="btn btn-primary" onclick="saveDocument()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3>Konfirmasi Hapus</h3>
+      <button class="modal-close" onclick="Modal.close('deleteModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Apakah Anda yakin ingin menghapus dokumen ini? Tindakan ini tidak dapat dibatalkan.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="Modal.close('deleteModal')">Batal</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+App.init();
+if (!App.currentUser) window.location.href = 'index.html';
+
+document.getElementById('sidebarContainer').innerHTML = renderSidebar('dokumen.html');
+document.getElementById('navbarContainer').innerHTML = renderNavbar('<span>Home</span> <span style="color:var(--gray-300)">/</span> <span>Dokumen</span>');
+document.getElementById('pageActions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="Modal.open('createModal')">${Icons.plus} Tambah Dokumen</button>`;
+initLayout();
+
+// Animate counters
+document.querySelectorAll('.stat-card-value[data-count]').forEach(el => {
+  const t = parseFloat(el.dataset.count);
+  setTimeout(() => animateCounter(el, t, 1000, ''), 300);
+});
+
+let currentFilter = 'all';
+let deleteTargetId = null;
+
+function filterTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  renderTable(q, currentFilter);
+}
+
+function setFilter(btn, filter) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = filter;
+  filterTable();
+}
+
+function renderTable(search = '', filter = 'all') {
+  let data = MOCK_DOKUMEN;
+  if (filter !== 'all') data = data.filter(d => d.jenis === filter);
+  if (search) data = data.filter(d =>
+    d.nomorResi.toLowerCase().includes(search) ||
+    d.pengirim.toLowerCase().includes(search) ||
+    d.penerima.toLowerCase().includes(search) ||
+    d.kota.toLowerCase().includes(search)
+  );
+
+  const tbody = document.getElementById('dokumenBody');
+  if (data.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-state-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><h4>Tidak ada dokumen</h4><p>Tidak ditemukan dokumen yang sesuai dengan filter.</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map(d => `
+    <tr>
+      <td class="table-cell-primary">${d.nomorResi}</td>
+      <td><span class="badge badge-${d.jenis === 'Resi Pengiriman' ? 'info' : d.jenis === 'Resi Pengambilan' ? 'warning' : 'primary'}">${d.jenis}</span></td>
+      <td>${d.pengirim}</td>
+      <td>${d.penerima}</td>
+      <td class="hide-mobile">${d.kota}</td>
+      <td class="hide-mobile">${d.berat}</td>
+      <td>${statusBadge(d.status)}</td>
+      <td class="hide-mobile">${formatDate(d.tanggal)}</td>
+      <td>
+        <div class="flex gap-1">
+          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:12px" title="Detail">👁</button>
+          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:12px" onclick="openDelete('${d.id}')" title="Hapus">🗑</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openDelete(id) { deleteTargetId = id; Modal.open('deleteModal'); }
+function confirmDelete() {
+  const idx = MOCK_DOKUMEN.findIndex(d => d.id === deleteTargetId);
+  if (idx > -1) MOCK_DOKUMEN.splice(idx, 1);
+  Modal.close('deleteModal');
+  renderTable();
+  Toast.success('Dokumen berhasil dihapus');
+}
+
+function saveDocument() {
+  const jenis = document.getElementById('formJenis').value;
+  const pengirim = document.getElementById('formPengirim').value;
+  const penerima = document.getElementById('formPenerima').value;
+  const kota = document.getElementById('formKota').value;
+  const berat = document.getElementById('formBerat').value;
+  if (!pengirim || !penerima || !kota) { Toast.error('Harap isi semua field'); return; }
+  const prefix = jenis === 'Resi Pengiriman' ? 'RP' : jenis === 'Resi Pengambilan' ? 'RPA' : 'SJ';
+  const num = String(MOCK_DOKUMEN.length + 145).padStart(5, '0');
+  MOCK_DOKUMEN.unshift({
+    id: 'DOK-' + String(MOCK_DOKUMEN.length + 1).padStart(3, '0'),
+    jenis, nomorResi: `${prefix}-2026-${num}`, pengirim, penerima, kota,
+    tanggal: new Date().toISOString().split('T')[0], status: 'Diproses', berat: berat || '0 kg'
+  });
+  Modal.close('createModal');
+  renderTable();
+  Toast.success('Dokumen baru berhasil ditambahkan');
+}
+
+renderTable();
+</script>
+</body>
+</html>

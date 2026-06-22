@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verifikasi Barang — Navagreen Logistics</title>
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div id="sidebarContainer"></div>
+  <main class="app-main">
+    <div id="navbarContainer"></div>
+    <div class="page-content">
+      <div class="page-header animate-fade-up">
+        <div class="page-header-left">
+          <h2>Verifikasi Barang</h2>
+          <p>Periksa dan verifikasi barang masuk dari pengambilan</p>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid animate-fade-up delay-1" style="grid-template-columns: repeat(3, 1fr)">
+        <div class="stat-card">
+          <div class="stat-card-icon amber"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div class="stat-card-label">Menunggu</div>
+          <div class="stat-card-value" data-count="1">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <div class="stat-card-label">Selesai</div>
+          <div class="stat-card-value" data-count="2">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon red"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+          <div class="stat-card-label">Bermasalah</div>
+          <div class="stat-card-value" data-count="2">0</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs mb-6 animate-fade-up delay-2">
+        <button class="tab-btn active" onclick="switchTab(this, 'all')">Semua</button>
+        <button class="tab-btn" onclick="switchTab(this, 'Menunggu')">Menunggu</button>
+        <button class="tab-btn" onclick="switchTab(this, 'Selesai')">Selesai</button>
+        <button class="tab-btn" onclick="switchTab(this, 'Bermasalah')">Bermasalah</button>
+      </div>
+
+      <!-- Cards Grid -->
+      <div id="verifikasiGrid" class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(380px, 1fr))"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Verification Detail Modal -->
+<div class="modal-overlay" id="verifyModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h3>Verifikasi Barang</h3>
+      <button class="modal-close" onclick="Modal.close('verifyModal')">✕</button>
+    </div>
+    <div class="modal-body" id="verifyModalBody"></div>
+    <div class="modal-footer" id="verifyModalFooter"></div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+App.init();
+if (!App.currentUser) window.location.href = 'index.html';
+document.getElementById('sidebarContainer').innerHTML = renderSidebar('verifikasi.html');
+document.getElementById('navbarContainer').innerHTML = renderNavbar('<span>Operasional</span> <span style="color:var(--gray-300)">/</span> <span>Verifikasi Barang</span>');
+initLayout();
+
+document.querySelectorAll('.stat-card-value[data-count]').forEach(el => {
+  setTimeout(() => animateCounter(el, parseFloat(el.dataset.count), 800, ''), 300);
+});
+
+let currentTab = 'all';
+function switchTab(btn, tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentTab = tab;
+  renderCards();
+}
+
+function renderCards() {
+  let data = MOCK_PEMERIKSAAN;
+  if (currentTab !== 'all') data = data.filter(p => p.status === currentTab);
+
+  const grid = document.getElementById('verifikasiGrid');
+  if (data.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><h4>Tidak ada data</h4><p>Tidak ada pemeriksaan dengan status ini.</p></div>';
+    return;
+  }
+
+  grid.innerHTML = data.map(p => `
+    <div class="verification-card animate-fade-up">
+      <div class="verification-card-status ${p.status.toLowerCase()}"></div>
+      <div class="verification-card-body">
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-semibold" style="color:var(--text-primary)">${p.id}</span>
+          ${statusBadge(p.status)}
+        </div>
+        <h4 style="margin-bottom:8px;font-size:14px">${p.namaBarang}</h4>
+        <div class="flex gap-6 mb-3" style="font-size:13px;color:var(--text-muted)">
+          <span>Resi: ${p.nomorResi}</span>
+          <span>${formatDate(p.tanggal)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;padding:12px;background:var(--gray-50);border-radius:8px">
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Expected</div>
+            <div class="font-semibold">${p.kuantitasExpected} unit</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Actual</div>
+            <div class="font-semibold">${p.kuantitasActual !== null ? p.kuantitasActual + ' unit' : '—'}</div>
+          </div>
+        </div>
+        ${p.kondisi ? `<div class="mb-3"><span style="font-size:12px;color:var(--text-muted)">Kondisi:</span> ${statusBadge(p.kondisi)}</div>` : ''}
+        ${p.catatan ? `<p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">📝 ${p.catatan}</p>` : ''}
+        <div class="flex gap-2">
+          ${p.status === 'Menunggu' ? `<button class="btn btn-primary btn-sm w-full" onclick="openVerify('${p.id}')">Verifikasi Sekarang</button>` : `<button class="btn btn-secondary btn-sm w-full" onclick="openVerify('${p.id}')">Lihat Detail</button>`}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+let verifyTargetId = null;
+function openVerify(id) {
+  verifyTargetId = id;
+  const p = MOCK_PEMERIKSAAN.find(x => x.id === id);
+  const isEditable = p.status === 'Menunggu';
+  document.getElementById('verifyModalBody').innerHTML = `
+    <div style="padding:12px 16px;background:var(--gray-50);border-radius:8px;margin-bottom:20px">
+      <div class="font-semibold mb-2">${p.namaBarang}</div>
+      <div style="font-size:13px;color:var(--text-muted)">Resi: ${p.nomorResi} · Expected: ${p.kuantitasExpected} unit</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Kuantitas Aktual</label>
+      <input type="number" class="form-input" id="vActual" value="${p.kuantitasActual || ''}" placeholder="Jumlah unit yang diterima" ${!isEditable ? 'disabled' : ''}>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Kondisi Barang</label>
+      <div class="condition-selector" id="conditionSelector">
+        <div class="condition-option ${p.kondisi === 'Lengkap' ? 'selected' : ''}" onclick="${isEditable ? "selectCondition(this,'Lengkap')" : ''}" ${!isEditable ? 'style="pointer-events:none"' : ''}>✅ Lengkap</div>
+        <div class="condition-option ${p.kondisi === 'Kurang' ? 'selected' : ''}" onclick="${isEditable ? "selectCondition(this,'Kurang')" : ''}" ${!isEditable ? 'style="pointer-events:none"' : ''}>⚠️ Kurang</div>
+        <div class="condition-option ${p.kondisi === 'Rusak' ? 'selected' : ''}" onclick="${isEditable ? "selectCondition(this,'Rusak')" : ''}" ${!isEditable ? 'style="pointer-events:none"' : ''}>❌ Rusak</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Catatan</label>
+      <textarea class="form-input" id="vNotes" rows="3" placeholder="Tambahkan catatan..." ${!isEditable ? 'disabled' : ''}>${p.catatan || ''}</textarea>
+    </div>
+  `;
+  document.getElementById('verifyModalFooter').innerHTML = isEditable
+    ? `<button class="btn btn-secondary" onclick="Modal.close('verifyModal')">Batal</button><button class="btn btn-primary" onclick="submitVerification()">Simpan Verifikasi</button>`
+    : `<button class="btn btn-secondary" onclick="Modal.close('verifyModal')">Tutup</button>`;
+  Modal.open('verifyModal');
+}
+
+let selectedCondition = null;
+function selectCondition(el, cond) {
+  document.querySelectorAll('.condition-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCondition = cond;
+}
+
+function submitVerification() {
+  const actual = document.getElementById('vActual').value;
+  const notes = document.getElementById('vNotes').value;
+  if (!actual || !selectedCondition) { Toast.error('Harap isi kuantitas dan pilih kondisi'); return; }
+  const p = MOCK_PEMERIKSAAN.find(x => x.id === verifyTargetId);
+  p.kuantitasActual = parseInt(actual);
+  p.kondisi = selectedCondition;
+  p.catatan = notes;
+  p.status = selectedCondition === 'Lengkap' ? 'Selesai' : 'Bermasalah';
+  p.pemeriksa = App.currentUser?.name || 'User';
+  Modal.close('verifyModal');
+  renderCards();
+  Toast.success('Verifikasi berhasil disimpan');
+}
+
+renderCards();
+</script>
+</body>
+</html>

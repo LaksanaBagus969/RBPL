@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sorting & Packing — Navagreen Logistics</title>
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div id="sidebarContainer"></div>
+  <main class="app-main">
+    <div id="navbarContainer"></div>
+    <div class="page-content">
+      <div class="page-header animate-fade-up">
+        <div class="page-header-left">
+          <h2>Sorting & Packing</h2>
+          <p>Kelompokkan barang ke dalam paket pengiriman</p>
+        </div>
+        <div class="page-header-actions" id="pageActions"></div>
+      </div>
+
+      <!-- Kanban Board -->
+      <div class="kanban-board animate-fade-up delay-1" id="kanbanBoard"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Create Package Modal -->
+<div class="modal-overlay" id="packageModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Buat Paket Baru</h3>
+      <button class="modal-close" onclick="Modal.close('packageModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Kota Tujuan</label>
+        <input type="text" class="form-input" id="pkgKota" placeholder="Kota tujuan">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Item Barang (pisahkan dengan koma)</label>
+        <textarea class="form-input" id="pkgItems" rows="3" placeholder="cth: Hair Tonic x50, Shampoo x30"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-group">
+          <label class="form-label">Berat Total (kg)</label>
+          <input type="text" class="form-input" id="pkgBerat" placeholder="0.0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Supir</label>
+          <select class="form-input" id="pkgSupir">
+            <option value="">— Belum ditentukan —</option>
+            <option value="Dedi Kurniawan">Dedi Kurniawan</option>
+            <option value="Eko Prasetyo">Eko Prasetyo</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="Modal.close('packageModal')">Batal</button>
+      <button class="btn btn-primary" onclick="savePackage()">Buat Paket</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+App.init();
+if (!App.currentUser) window.location.href = 'index.html';
+document.getElementById('sidebarContainer').innerHTML = renderSidebar('sorting.html');
+document.getElementById('navbarContainer').innerHTML = renderNavbar('<span>Operasional</span> <span style="color:var(--gray-300)">/</span> <span>Sorting & Packing</span>');
+document.getElementById('pageActions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="Modal.open('packageModal')">${Icons.plus} Buat Paket</button>`;
+initLayout();
+
+function renderKanban() {
+  const dikemas = MOCK_PAKET.filter(p => p.status === 'Dikemas');
+  const siap = MOCK_PAKET.filter(p => p.status === 'Siap Kirim');
+
+  document.getElementById('kanbanBoard').innerHTML = `
+    <div class="kanban-column">
+      <div class="kanban-column-header">
+        <div class="kanban-column-title">📦 Sedang Dikemas</div>
+        <span class="kanban-column-count">${dikemas.length}</span>
+      </div>
+      ${dikemas.length === 0 ? '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:32px">Tidak ada paket</p>' : dikemas.map(p => renderPackageCard(p)).join('')}
+    </div>
+    <div class="kanban-column" style="border-top:3px solid var(--success)">
+      <div class="kanban-column-header">
+        <div class="kanban-column-title">✅ Siap Kirim</div>
+        <span class="kanban-column-count">${siap.length}</span>
+      </div>
+      ${siap.length === 0 ? '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:32px">Tidak ada paket</p>' : siap.map(p => renderPackageCard(p)).join('')}
+    </div>
+  `;
+}
+
+function renderPackageCard(p) {
+  return `
+    <div class="kanban-card">
+      <div class="flex items-center justify-between mb-3">
+        <span class="font-semibold text-sm" style="color:var(--text-primary)">${p.id}</span>
+        ${statusBadge(p.status)}
+      </div>
+      <div class="flex items-center gap-2 mb-3">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span class="font-medium text-sm">${p.kotaTujuan}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
+        ${p.items.map(i => `<span style="display:inline-block;background:var(--gray-100);padding:2px 8px;border-radius:4px;margin:2px">${i}</span>`).join('')}
+      </div>
+      <div class="flex items-center justify-between" style="font-size:12px;color:var(--text-muted);padding-top:8px;border-top:1px solid var(--gray-100)">
+        <span>⚖ ${p.beratTotal}</span>
+        <span>${p.totalBarang} item</span>
+        ${p.supir ? `<span>🚚 ${p.supir}</span>` : '<span style="color:var(--warning)">Belum ada supir</span>'}
+      </div>
+      ${p.status === 'Dikemas' ? `<button class="btn btn-primary btn-sm w-full mt-4" onclick="markReady('${p.id}')">Tandai Siap Kirim</button>` : ''}
+    </div>
+  `;
+}
+
+function markReady(id) {
+  const p = MOCK_PAKET.find(x => x.id === id);
+  if (p) { p.status = 'Siap Kirim'; renderKanban(); Toast.success(`Paket ${id} siap kirim!`); }
+}
+
+function savePackage() {
+  const kota = document.getElementById('pkgKota').value;
+  const itemsRaw = document.getElementById('pkgItems').value;
+  const berat = document.getElementById('pkgBerat').value;
+  const supir = document.getElementById('pkgSupir').value;
+  if (!kota || !itemsRaw) { Toast.error('Harap isi kota dan item barang'); return; }
+  const items = itemsRaw.split(',').map(i => i.trim()).filter(Boolean);
+  const num = MOCK_PAKET.length + 1;
+  MOCK_PAKET.unshift({
+    id: 'PKT-' + String(num).padStart(3, '0'),
+    kotaTujuan: kota, totalBarang: items.length, beratTotal: (berat || '0') + ' kg',
+    status: 'Dikemas', supir: supir || null, items, tanggal: new Date().toISOString().split('T')[0]
+  });
+  Modal.close('packageModal');
+  renderKanban();
+  Toast.success('Paket baru berhasil dibuat');
+}
+
+renderKanban();
+</script>
+</body>
+</html>

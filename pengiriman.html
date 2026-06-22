@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengiriman — Navagreen Logistics</title>
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div id="sidebarContainer"></div>
+  <main class="app-main">
+    <div id="navbarContainer"></div>
+    <div class="page-content">
+      <div class="page-header animate-fade-up">
+        <div class="page-header-left">
+          <h2>Manajemen Pengiriman</h2>
+          <p>Kelola status dan rute pengiriman</p>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid animate-fade-up delay-1">
+        <div class="stat-card">
+          <div class="stat-card-icon amber"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div class="stat-card-label">Menunggu</div>
+          <div class="stat-card-value" data-count="1">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon blue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
+          <div class="stat-card-label">Dalam Perjalanan</div>
+          <div class="stat-card-value" data-count="1">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <div class="stat-card-label">Terkirim</div>
+          <div class="stat-card-value" data-count="2">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon red"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+          <div class="stat-card-label">Gagal</div>
+          <div class="stat-card-value" data-count="1">0</div>
+        </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="table-toolbar animate-fade-up delay-2">
+        <div class="table-filters">
+          <button class="filter-btn active" onclick="setDeliveryFilter(this,'all')">Semua</button>
+          <button class="filter-btn" onclick="setDeliveryFilter(this,'Menunggu')">Menunggu</button>
+          <button class="filter-btn" onclick="setDeliveryFilter(this,'Dalam Perjalanan')">Dalam Perjalanan</button>
+          <button class="filter-btn" onclick="setDeliveryFilter(this,'Terkirim')">Terkirim</button>
+          <button class="filter-btn" onclick="setDeliveryFilter(this,'Gagal')">Gagal</button>
+        </div>
+      </div>
+
+      <!-- Delivery Cards Grid -->
+      <div id="deliveryGrid" class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(380px, 1fr))"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Delivery Detail Modal -->
+<div class="modal-overlay" id="deliveryModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h3>Detail Pengiriman</h3>
+      <button class="modal-close" onclick="Modal.close('deliveryModal')">✕</button>
+    </div>
+    <div class="modal-body" id="deliveryModalBody"></div>
+    <div class="modal-footer" id="deliveryModalFooter"></div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+App.init();
+if (!App.currentUser) window.location.href = 'index.html';
+document.getElementById('sidebarContainer').innerHTML = renderSidebar('pengiriman.html');
+document.getElementById('navbarContainer').innerHTML = renderNavbar('<span>Operasional</span> <span style="color:var(--gray-300)">/</span> <span>Pengiriman</span>');
+initLayout();
+
+document.querySelectorAll('.stat-card-value[data-count]').forEach(el => {
+  setTimeout(() => animateCounter(el, parseFloat(el.dataset.count), 800, ''), 300);
+});
+
+let deliveryFilter = 'all';
+function setDeliveryFilter(btn, filter) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  deliveryFilter = filter;
+  renderDeliveries();
+}
+
+function renderDeliveries() {
+  let data = MOCK_PENGIRIMAN;
+  if (deliveryFilter !== 'all') data = data.filter(d => d.status === deliveryFilter);
+
+  const grid = document.getElementById('deliveryGrid');
+  if (data.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">🚚</div><h4>Tidak ada pengiriman</h4><p>Tidak ada pengiriman dengan status ini.</p></div>';
+    return;
+  }
+
+  grid.innerHTML = data.map(d => `
+    <div class="delivery-card animate-fade-up">
+      <div class="delivery-card-header">
+        <div>
+          <div class="font-semibold" style="margin-bottom:2px">${d.nomorResi}</div>
+          <div class="text-xs text-muted">${d.id} · ${formatDate(d.tanggal)}</div>
+        </div>
+        ${statusBadge(d.status)}
+      </div>
+
+      <!-- Route Visualization -->
+      <div class="delivery-route">
+        <div>
+          <div class="delivery-route-dot origin"></div>
+        </div>
+        <div style="flex:1;text-align:center">
+          <div class="delivery-route-line" style="margin:0 auto"></div>
+          <div class="text-xs text-muted" style="margin-top:4px">⚖ ${d.berat}</div>
+        </div>
+        <div>
+          <div class="delivery-route-dot destination"></div>
+        </div>
+      </div>
+      <div class="flex justify-between mb-4" style="font-size:12px">
+        <div><span class="text-muted">Dari:</span> <span class="font-medium">Gudang Navagreen</span></div>
+        <div class="text-right"><span class="text-muted">Ke:</span> <span class="font-medium">${d.tujuan}</span></div>
+      </div>
+
+      <!-- Customer Info -->
+      <div style="padding:12px;background:var(--gray-50);border-radius:8px;margin-bottom:12px;font-size:13px">
+        <div class="font-medium mb-2" style="color:var(--text-primary)">${d.penerima}</div>
+        <div class="text-muted" style="margin-bottom:4px">📍 ${d.alamat}</div>
+        <div class="text-muted">📞 ${d.telepon}</div>
+      </div>
+
+      ${d.catatan ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;padding:8px 12px;background:#fffbeb;border-radius:6px;border:1px solid #fef3c7">📝 ${d.catatan}</div>` : ''}
+
+      <!-- Progress Timeline -->
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:16px">
+        ${['Menunggu','Dalam Perjalanan','Terkirim'].map((s, i) => {
+          const statusOrder = { 'Menunggu': 0, 'Dalam Perjalanan': 1, 'Terkirim': 2, 'Gagal': -1 };
+          const current = statusOrder[d.status];
+          const isActive = current >= i;
+          const isFailed = d.status === 'Gagal';
+          return `<div style="flex:1;height:4px;border-radius:4px;background:${isFailed ? (i === 0 ? 'var(--danger)' : 'var(--gray-200)') : (isActive ? 'var(--primary-500)' : 'var(--gray-200)')};transition:background 0.3s"></div>`;
+        }).join('')}
+      </div>
+
+      <!-- Actions -->
+      <div class="delivery-actions">
+        ${d.status === 'Menunggu' ? `<button class="btn btn-primary btn-sm" onclick="updateDeliveryStatus('${d.id}','Dalam Perjalanan')">🚀 Mulai Kirim</button>` : ''}
+        ${d.status === 'Dalam Perjalanan' ? `
+          <button class="btn btn-primary btn-sm" onclick="updateDeliveryStatus('${d.id}','Terkirim')">✅ Terkirim</button>
+          <button class="btn btn-danger btn-sm" onclick="openFailModal('${d.id}')">❌ Gagal</button>
+        ` : ''}
+        ${d.status === 'Terkirim' || d.status === 'Gagal' ? `<button class="btn btn-secondary btn-sm w-full" onclick="openDetail('${d.id}')">Lihat Detail</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateDeliveryStatus(id, newStatus) {
+  const d = MOCK_PENGIRIMAN.find(x => x.id === id);
+  if (d) {
+    d.status = newStatus;
+    if (newStatus === 'Terkirim') d.catatan = 'Paket diterima oleh penerima';
+    renderDeliveries();
+    Toast.success(`Status ${id} diubah ke ${newStatus}`);
+  }
+}
+
+function openFailModal(id) {
+  const reason = prompt('Alasan gagal kirim:');
+  if (reason) {
+    const d = MOCK_PENGIRIMAN.find(x => x.id === id);
+    if (d) {
+      d.status = 'Gagal';
+      d.catatan = reason;
+      renderDeliveries();
+      Toast.error(`Pengiriman ${id} ditandai gagal`);
+    }
+  }
+}
+
+function openDetail(id) {
+  const d = MOCK_PENGIRIMAN.find(x => x.id === id);
+  document.getElementById('deliveryModalBody').innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h4>${d.nomorResi}</h4>
+      ${statusBadge(d.status)}
+    </div>
+    <div style="font-size:13px;display:grid;gap:12px">
+      <div class="flex justify-between"><span class="text-muted">Penerima</span><span class="font-medium">${d.penerima}</span></div>
+      <div class="flex justify-between"><span class="text-muted">Tujuan</span><span class="font-medium">${d.tujuan}</span></div>
+      <div class="flex justify-between"><span class="text-muted">Alamat</span><span class="font-medium" style="text-align:right;max-width:260px">${d.alamat}</span></div>
+      <div class="flex justify-between"><span class="text-muted">Telepon</span><span class="font-medium">${d.telepon}</span></div>
+      <div class="flex justify-between"><span class="text-muted">Supir</span><span class="font-medium">${d.supir}</span></div>
+      <div class="flex justify-between"><span class="text-muted">Berat</span><span class="font-medium">${d.berat}</span></div>
+      <div class="flex justify-between"><span class="text-muted">Tanggal</span><span class="font-medium">${formatDate(d.tanggal)}</span></div>
+      <div class="flex justify-between"><span class="text-muted">Estimasi</span><span class="font-medium">${formatDate(d.estimasi)}</span></div>
+      ${d.catatan ? `<div style="padding:12px;background:var(--gray-50);border-radius:8px"><span class="text-muted">Catatan:</span> ${d.catatan}</div>` : ''}
+    </div>
+  `;
+  document.getElementById('deliveryModalFooter').innerHTML = `<button class="btn btn-secondary" onclick="Modal.close('deliveryModal')">Tutup</button>`;
+  Modal.open('deliveryModal');
+}
+
+renderDeliveries();
+</script>
+</body>
+</html>
